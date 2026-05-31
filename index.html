@@ -220,7 +220,7 @@
       width: 100%; background: var(--surface2); border: 1px solid var(--border);
       border-radius: 10px; color: var(--text); font-size: 14px;
       padding: 10px 12px; outline: none; color-scheme: dark;
-      min-width: 0;
+      min-width: 0; box-sizing: border-box;
     }
     input[type="date"]:focus, input[type="time"]:focus { border-color: var(--work); }
     .sheet-error { font-size: 11px; color: var(--danger); margin-top: 6px; min-height: 14px; }
@@ -755,6 +755,7 @@ function saveSheet() {
   const sm = getSheetMs('sheetStart'), em = getSheetMs('sheetEnd');
   if (isNaN(sm) || isNaN(em))    { err.textContent = 'Completa inicio y fin.'; return; }
   if (em <= sm)                  { err.textContent = 'El fin debe ser posterior al inicio.'; return; }
+  if (em - sm < 60000)           { err.textContent = 'El registro debe durar al menos 1 minuto.'; return; }
   if (em > Date.now() + 60000)   { err.textContent = 'El fin no puede ser en el futuro.'; return; }
   if (em - sm > 24 * 3600000)    { err.textContent = 'Un turno no puede superar 24h.'; return; }
   const shifts = loadShifts();
