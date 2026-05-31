@@ -126,7 +126,6 @@
     .day-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 6px 2px; margin-top: 12px; margin-bottom: 6px;
-      border-bottom: 1px solid var(--border);
     }
     .day-header:first-child { margin-top: 0; }
     .day-label { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.5); }
@@ -186,10 +185,14 @@
       text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; display: block;
     }
     .sheet-dt-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    @media (max-width: 400px) {
+      .sheet-dt-row { grid-template-columns: 1fr; }
+    }
     input[type="date"], input[type="time"] {
       width: 100%; background: var(--surface2); border: 1px solid var(--border);
       border-radius: 10px; color: var(--text); font-size: 14px;
       padding: 10px 12px; outline: none; color-scheme: dark;
+      min-width: 0;
     }
     input[type="date"]:focus, input[type="time"]:focus { border-color: var(--work); }
     .sheet-error { font-size: 11px; color: var(--danger); margin-top: 6px; min-height: 14px; }
@@ -214,7 +217,7 @@
     .toast {
       position: fixed; bottom: 40px; left: 50%;
       transform: translateX(-50%) translateY(8px);
-      background: var(--surface2); color: var(--text);
+      background: #ffffff; color: rgba(0,0,0,0.90);
       border-radius: 999px; padding: 9px 18px;
       font-size: 13px; font-weight: 500;
       opacity: 0; transition: opacity .2s, transform .2s;
@@ -230,14 +233,14 @@
 <body>
 
 <header>
-  <h1>⛵ SeaShift</h1>
+  <h1>SeaShift</h1>
   <div class="date" id="headerDate"></div>
 </header>
 
 <div style="padding: 0 16px;">
 
   <!-- Live clock -->
-  <div id="liveCard" style="display:none; position:relative; border-radius:14px; padding:18px 20px; margin-bottom:12px;">
+  <div id="liveCard" style="display:none; position:relative; border-radius:14px; padding:18px 20px; margin-bottom:32px;">
     <div id="liveEmoji" style="position:absolute;top:14px;right:16px;font-size:22px;"></div>
     <div class="live-row">
       <div class="live-dot" id="liveDot"></div>
@@ -266,6 +269,8 @@
     </div>
     <div id="histList"></div>
   </div>
+
+  <p style="text-align:center; color:rgba(255,255,255,0.30); font-size:12px; margin-top:32px;">Made with love from Valencia 💗</p>
 
 </div>
 
