@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0E1828">
+  <title>NachitusApp</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0E1828;
+      --surface:   #1e293b;
+      --surface2:  #273549;
+      --border:    #334155;
+      --muted:     #64748b;
+      --text:      #f1f5f9;
+      --sub:       #94a3b8;
+      --work:      #0072DC;
+      --work-dim:  #00224a;
+      --rest:      #10b981;
+      --rest-dim:  #064e3b;
+      --warn:      #f59e0b;
+      --warn-dim:  #451a03;
+      --danger:    #ef4444;
+      --danger-dim:#450a0a;
+      --radius:    14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      max-width: 480px;
+      margin: 0 auto;
+      padding-bottom: 40px;
+    }
+
+    header {
+      padding: 20px 20px 16px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 18px; font-weight: 700; }
+    header .date { font-size: 13px; color: #ffffff; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 10px;
+    }
+
+    /* ── Live clock ── */
+    .live-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .live-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+    .live-dot.work { background: #66E456; }
+    .live-dot.rest { background: #66E456; }
+    .live-dot.pulse { animation: blink 1.4s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+    .live-label { font-size: 13px; font-weight: 400; color: #ffffff; }
+    .live-label.work { color: #ffffff; }
+    .live-label.rest { color: #ffffff; }
+    .live-time {
+      font-size: 50px; font-weight: 700;
+      letter-spacing: -3px; font-variant-numeric: tabular-nums; line-height: 1;
+    }
+    .live-since { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 5px; }
+
+    /* ── Buttons ── */
+    .btn-col { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .btn {
+      border: none; border-radius: 100px; padding: 16px;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
+      transition: transform .1s; width: 100%;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-work { background: var(--work); color: #fff; }
+    .btn-rest { background: rgba(0,114,220,0.20); color: #fff; border: 1px solid rgba(255,255,255,0.10); }
+    .btn-stop { color: #fff; }
+
+    /* ── Alerts ── */
+    .alert-wrap { margin-bottom: 32px; }
+    .alert-card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px; padding: 16px;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .alert-card.danger {
+      background: rgba(255,46,46,0.32);
+      border: 1px solid #FF2E2E;
+    }
+    .alert-card.warn {
+      background: rgba(245,158,11,0.20);
+      border: 1px solid #F59E0B;
+    }
+    .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .alert-title { font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 4px; }
+    .alert-body  { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.4; }
+
+    /* ── Registro de horas ── */
+    .reg-card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .reg-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .reg-title { font-size: 15px; font-weight: 700; color: #fff; }
+    .btn-add {
+      background: var(--work); border: none; border-radius: 100px;
+      color: #fff; font-size: 13px; font-weight: 600;
+      padding: 6px 14px; cursor: pointer;
+    }
+
+    /* ── Day headers ── */
+    .day-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 2px; margin-top: 12px; margin-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .day-header:first-child { margin-top: 0; }
+    .day-label { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.5); }
+    .day-bad   { color: var(--danger) !important; }
+    .day-totals { display: flex; gap: 10px; font-size: 12px; color: rgba(255,255,255,0.5); }
+
+    /* ── History items ── */
+    .h-item {
+      background: rgba(255,255,255,0.05); border-radius: 12px;
+      padding: 12px 14px; display: flex; align-items: center;
+      gap: 11px; margin-bottom: 6px; cursor: pointer;
+    }
+    #histList .h-item:last-child { margin-bottom: 0; }
+    .h-info { flex: 1; min-width: 0; }
+    .h-type { font-size: 13px; font-weight: 600; color: #ffffff; }
+    .h-time { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+    .h-dur  { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; color: #ffffff; }
+
+    /* ── Bottom sheet ── */
+    .sheet-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.5); z-index: 50;
+    }
+    .sheet-overlay.open { display: block; }
+    .sheet {
+      position: fixed; bottom: 0; left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 100%; max-width: 480px;
+      background: var(--surface); border-radius: 20px 20px 0 0;
+      padding: 20px 20px 36px; z-index: 51;
+      transition: transform .3s ease;
+    }
+    .sheet.open { transform: translateX(-50%) translateY(0); }
+    .sheet-handle {
+      width: 36px; height: 4px; background: var(--border);
+      border-radius: 999px; margin: 0 auto 20px;
+    }
+    .sheet-title { font-size: 15px; font-weight: 700; margin-bottom: 18px; }
+    .form-label {
+      display: block; font-size: 11px; font-weight: 600; color: var(--sub);
+      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px;
+    }
+    .form-group { margin-bottom: 14px; }
+    .seg {
+      display: flex; background: var(--surface2);
+      border-radius: 10px; padding: 3px; gap: 3px;
+    }
+    .seg button {
+      flex: 1; border: none; border-radius: 8px; background: none;
+      color: var(--sub); padding: 9px; font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: background .15s, color .15s;
+    }
+    .seg button.active { background: #0072DC; color: #fff; font-weight: 600; }
+    .sheet-dt-group { margin-bottom: 14px; }
+    .sheet-dt-label {
+      font-size: 11px; font-weight: 600; color: var(--sub);
+      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; display: block;
+    }
+    .sheet-dt-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    input[type="date"], input[type="time"] {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 14px;
+      padding: 10px 12px; outline: none; color-scheme: dark;
+    }
+    input[type="date"]:focus, input[type="time"]:focus { border-color: var(--work); }
+    .sheet-error { font-size: 11px; color: var(--danger); margin-top: 6px; min-height: 14px; }
+    .sheet-save {
+      width: 100%; margin-top: 16px; border: none; border-radius: 100px;
+      padding: 14px; font-size: 15px; font-weight: 600;
+      background: var(--work); color: #fff; cursor: pointer;
+    }
+    .sheet-save:disabled { opacity: .35; cursor: not-allowed; }
+    .sheet-cancel {
+      display: block; width: 100%; margin-top: 10px; background: none; border: none;
+      color: var(--sub); font-size: 14px; font-weight: 500;
+      cursor: pointer; padding: 6px 0; text-align: center;
+    }
+    .sheet-delete {
+      display: block; width: 100%; margin-top: 20px; background: none; border: none;
+      color: var(--danger); font-size: 14px; font-weight: 500;
+      cursor: pointer; padding: 6px 0; text-align: center;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 40px; left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      background: var(--surface2); color: var(--text);
+      border-radius: 999px; padding: 9px 18px;
+      font-size: 13px; font-weight: 500;
+      opacity: 0; transition: opacity .2s, transform .2s;
+      pointer-events: none; white-space: nowrap; z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Empty ── */
+    .empty { text-align: center; color: rgba(255,255,255,0.5); padding: 12px 0; font-size: 13px; }
+    .empty .ico { font-size: 28px; display: block; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⛵ NachitusApp</h1>
+  <div class="date" id="headerDate"></div>
+</header>
+
+<div style="padding: 0 16px;">
+
+  <!-- Live clock -->
+  <div id="liveCard" style="display:none; position:relative; border-radius:14px; padding:18px 20px; margin-bottom:12px;">
+    <div id="liveEmoji" style="position:absolute;top:14px;right:16px;font-size:22px;"></div>
+    <div class="live-row">
+      <div class="live-dot" id="liveDot"></div>
+      <div class="live-label" id="liveLabel"></div>
+    </div>
+    <div class="live-time" id="liveTime"></div>
+    <div class="live-since" id="liveSince"></div>
+    <button class="btn" id="btnStopLabel" onclick="stopShift()"
+      style="margin-top:16px;background:rgba(255,255,255,0.20);color:#fff;border:none;">Finalizar turno</button>
+  </div>
+
+  <!-- Start buttons -->
+  <div class="btn-col" id="btnStart" style="margin-top:32px; margin-bottom:32px;">
+    <button class="btn btn-work" onclick="startShift('work')">▶ Turno de Trabajo</button>
+    <button class="btn btn-rest" onclick="startShift('rest')">🌙 Período de Descanso</button>
+  </div>
+
+  <!-- Alerts -->
+  <div id="homeAlerts" class="alert-wrap"></div>
+
+  <!-- Registro de horas -->
+  <div class="reg-card">
+    <div class="reg-header">
+      <div class="reg-title">Registro de horas</div>
+      <button class="btn-add" onclick="openNewSheet()">+ Añadir</button>
+    </div>
+    <div id="histList"></div>
+  </div>
+
+</div>
+
+<!-- Bottom sheet -->
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="sheetTitle">Editar registro</div>
+
+  <div class="form-group">
+    <span class="form-label">Tipo</span>
+    <div class="seg">
+      <button id="sheetWork" onclick="sheetSetType('work')">⚙️ Trabajo</button>
+      <button id="sheetRest" onclick="sheetSetType('rest')">🌙 Descanso</button>
+    </div>
+  </div>
+
+  <div class="sheet-dt-group">
+    <span class="sheet-dt-label">Inicio</span>
+    <div class="sheet-dt-row">
+      <input type="date" id="sheetStartDate" oninput="checkSheetChanged()">
+      <input type="time" id="sheetStartTime" oninput="checkSheetChanged()">
+    </div>
+  </div>
+  <div class="sheet-dt-group">
+    <span class="sheet-dt-label">Fin</span>
+    <div class="sheet-dt-row">
+      <input type="date" id="sheetEndDate" oninput="checkSheetChanged()">
+      <input type="time" id="sheetEndTime" oninput="checkSheetChanged()">
+    </div>
+  </div>
+
+  <div class="sheet-error" id="sheetErr"></div>
+  <button class="sheet-save" id="sheetSaveBtn" onclick="saveSheet()" disabled>Guardar</button>
+  <button class="sheet-cancel" onclick="closeSheet()">Cerrar</button>
+  <button class="sheet-delete" id="sheetDeleteBtn" onclick="deleteFromSheet()">Eliminar registro</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Storage ──────────────────────────
+const KS = 'nacho_v3_shifts', KA = 'nacho_v3_active';
+const loadShifts = () => { try { return JSON.parse(localStorage.getItem(KS)) || []; } catch { return []; } };
+const saveShifts = s => localStorage.setItem(KS, JSON.stringify(s));
+const loadActive = () => { try { return JSON.parse(localStorage.getItem(KA)); } catch { return null; } };
+const saveActive = a => a ? localStorage.setItem(KA, JSON.stringify(a)) : localStorage.removeItem(KA);
+
+// ── State ────────────────────────────
+let active = loadActive();
+let ticker = null;
+let sheetType = 'work';
+let editingId = null;
+let sheetOriginal = null;
+
+// ── Live shift ───────────────────────
+function startShift(type) {
+  if (active) commitActive();
+  active = { type, start: Date.now() };
+  saveActive(active);
+  renderAll();
+  startTick();
+}
+
+function stopShift() {
+  if (!active) return;
+  const dur = Date.now() - active.start;
+  const saved = dur >= 60000;
+  commitActive();
+  active = null;
+  saveActive(null);
+  stopTick();
+  renderAll();
+  toast(saved ? 'Turno guardado' : 'Turno descartado');
+}
+
+function commitActive() {
+  const dur = Date.now() - active.start;
+  if (dur < 10000) return; // ignore < 10 seconds
+  const shifts = loadShifts();
+  shifts.push({ id: uid(), type: active.type, start: active.start, end: Date.now(), manual: false });
+  saveShifts(shifts);
+}
+
+// ── Tick ─────────────────────────────
+function startTick() { stopTick(); ticker = setInterval(renderClock, 1000); renderClock(); }
+function stopTick()  { if (ticker) { clearInterval(ticker); ticker = null; } }
+
+// ── Compliance ───────────────────────
+const T24 = 24 * 3600000, T7 = 7 * 24 * 3600000;
+
+function totalsInWindow(windowStart, windowEnd, shifts, activeSnap) {
+  let work = 0, rest = 0;
+  const all = [...shifts, ...(activeSnap ? [activeSnap] : [])];
+  all.forEach(s => {
+    if (s.end <= windowStart || s.start >= windowEnd) return;
+    const dur = Math.min(s.end, windowEnd) - Math.max(s.start, windowStart);
+    s.type === 'work' ? (work += dur) : (rest += dur);
+  });
+  return { work, rest };
+}
+
+function getAlerts() {
+  const now = Date.now();
+  const allShifts = loadShifts();
+  if (allShifts.length === 0) return [];
+
+  const firstRecord = Math.min(...allShifts.map(s => s.start));
+  if (now - firstRecord < T24) return [];
+
+  // ── Evaluate each past calendar day with records ──
+  const byDay = {};
+  allShifts.forEach(s => {
+    const k = dayKey(s.start);
+    if (!byDay[k]) byDay[k] = { work: 0, rest: 0 };
+    byDay[k].work += s.type === 'work' ? (s.end - s.start) : 0;
+    byDay[k].rest += s.type === 'rest' ? (s.end - s.start) : 0;
+  });
+
+  // Only evaluate days that are fully in the past (not today)
+  const todayKey = dayKey(now);
+  let restBadDays = 0, workBadDays = 0;
+  Object.entries(byDay).forEach(([k, { work, rest }]) => {
+    if (k === todayKey) return; // skip today
+    if (work === 0) return;     // no work, no evaluation
+    if (work / 3600000 > 14) workBadDays++;
+    if (rest / 3600000 < 10)  restBadDays++; // 0h rest also counts as violation
+  });
+
+  // ── Gap between rest periods ──
+  let gapBad = false;
+  const restShifts = allShifts.filter(s => s.type === 'rest').sort((a,b) => a.start - b.start);
+  for (let i = 1; i < restShifts.length; i++) {
+    if (restShifts[i].start - restShifts[i-1].end > 14 * 3600000) { gapBad = true; break; }
+  }
+
+  const restBad = restBadDays > 0, workBad = workBadDays > 0;
+
+  if (!restBad && !workBad && !gapBad)
+    return [{ icon: '✅', cls: 'ok', title: 'Todo en orden', body: 'Tus horas de trabajo y descanso cumplen con la normativa STCW.' }];
+
+  const alerts = [];
+  const rd = restBadDays === 1 ? '1 jornada' : `${restBadDays} jornadas`;
+  const wd = workBadDays === 1 ? '1 jornada' : `${workBadDays} jornadas`;
+
+  if (restBad && workBad) {
+    alerts.push({ icon: '🚨', cls: 'danger', title: 'Descanso insuficiente y horas extra',
+      body: `Ha habido ${wd} con exceso de trabajo y ${rd} con menos de 10h de descanso.` });
+  } else if (restBad) {
+    alerts.push({ icon: '⚠️', cls: 'warn', title: 'Te faltan horas de descanso',
+      body: `En los últimos 7 días ha habido ${rd} con menos de 10h de descanso.` });
+  } else if (workBad) {
+    alerts.push({ icon: '⚠️', cls: 'warn', title: 'Estás trabajando horas extra',
+      body: `En los últimos 7 días ha habido ${wd} con más de 14h de trabajo.` });
+  }
+
+  if (gapBad)
+    alerts.push({ icon: '⚠️', cls: 'warn', title: 'Intervalo entre descansos excedido',
+      body: 'Ha habido un período de más de 14h sin descanso entre dos períodos consecutivos.' });
+
+  return alerts;
+}
+
+function checkDayViolations(dayStart, allShifts) {
+  const we = dayStart + T24;
+  if (we > Date.now()) return { workBad: false, restBad: false };
+  const { work, rest } = totalsInWindow(dayStart, we, allShifts, null);
+  const wh = work / 3600000, rh = rest / 3600000;
+  return { workBad: wh > 14, restBad: work > 0 && rest > 0 && rh < 10 };
+}
+
+// ── Render ───────────────────────────
+function renderClock() {
+  const card  = document.getElementById('liveCard');
+  const dot   = document.getElementById('liveDot');
+  const label = document.getElementById('liveLabel');
+  const time  = document.getElementById('liveTime');
+  const since = document.getElementById('liveSince');
+
+  if (!active) { card.style.display = 'none'; return; }
+
+  card.style.display = 'block';
+  const isWork = active.type === 'work';
+  card.style.background = isWork ? 'rgba(0,114,220,0.90)' : 'rgba(0,114,220,0.20)';
+  card.style.border = 'none';
+
+  document.getElementById('liveEmoji').textContent = isWork ? '⚙️' : '🌙';
+
+  const stopBtn = document.getElementById('btnStopLabel');
+  stopBtn.textContent = isWork ? 'Finalizar Turno de Trabajo' : 'Finalizar Período de Descanso';
+
+  dot.className = `live-dot ${active.type} pulse`;
+  label.className = `live-label ${active.type}`;
+  label.textContent = isWork ? 'Turno de trabajo' : 'Período de descanso';
+
+  const el = Date.now() - active.start;
+  time.textContent = fmtDurHMS(el);
+
+  const d = new Date(active.start);
+  const dia = _DIAS[d.getDay()];
+  const diaLabel = dia.charAt(0).toUpperCase() + dia.slice(1);
+  since.textContent = `Desde el ${diaLabel}, ${d.getDate()} de ${_MESES[d.getMonth()]} a las ${fmtTime(d)}h`;
+}
+
+function renderButtons() {
+  document.getElementById('btnStart').style.display = active ? 'none' : 'flex';
+}
+
+function renderAlerts() {
+  const alerts = getAlerts();
+  document.getElementById('homeAlerts').innerHTML = alerts.map(a =>
+    `<div class="alert-card ${a.cls || ''}">
+      <div class="alert-icon">${a.icon}</div>
+      <div>
+        <div class="alert-title">${a.title}</div>
+        <div class="alert-body">${a.body}</div>
+      </div>
+    </div>`
+  ).join('');
+}
+
+function renderHistorial() {
+  const allShifts = loadShifts().slice().sort((a,b) => b.start - a.start);
+  const list = document.getElementById('histList');
+
+  // Active row
+  let activeRow = '';
+  if (active) {
+    const emoji = active.type === 'work' ? '⚙️' : '🌙';
+    const label = active.type === 'work' ? 'Turno de trabajo' : 'Período de descanso';
+    const since = fmtDTFull(new Date(active.start));
+    activeRow = `<div class="h-item" style="background:rgba(255,255,255,0.05);">
+      <div style="font-size:20px;flex-shrink:0;">${emoji}</div>
+      <div class="h-info">
+        <div class="h-type">${label}</div>
+        <div class="h-time">${since}</div>
+      </div>
+      <span style="font-size:11px;font-weight:600;color:#66E456;background:rgba(102,228,86,0.15);padding:3px 8px;border-radius:999px;white-space:nowrap;">● En curso</span>
+    </div>`;
+  }
+
+  if (allShifts.length === 0 && !active) {
+    list.innerHTML = '<div class="empty"><span class="ico">📋</span>No hay registros aún</div>';
+    return;
+  }
+
+  // Group by day
+  const byDay = {};
+  allShifts.forEach(s => {
+    const k = dayKey(s.start);
+    if (!byDay[k]) byDay[k] = [];
+    byDay[k].push(s);
+  });
+
+  const days = Object.keys(byDay).sort((a,b) => b.localeCompare(a));
+
+  const dayHtml = days.map(key => {
+    const dayShifts = byDay[key];
+    const work = dayShifts.filter(s => s.type==='work').reduce((a,s) => a+(s.end-s.start), 0);
+    const rest = dayShifts.filter(s => s.type==='rest').reduce((a,s) => a+(s.end-s.start), 0);
+    const dayStart = new Date(key + 'T00:00:00').getTime();
+    const { workBad, restBad } = checkDayViolations(dayStart, allShifts);
+    const anyBad = workBad || restBad;
+    const d = new Date(key + 'T12:00:00');
+    const dayLabel = fmtDayHeader(d);
+
+    return `<div class="day-header">
+        <span class="day-label ${anyBad ? 'day-bad' : ''}">${dayLabel}</span>
+        <span class="day-totals">
+          ${work > 0 ? `<span class="${workBad?'day-bad':''}">⚙️ ${fmtH(work)}</span>` : ''}
+          ${rest > 0 ? `<span class="${restBad?'day-bad':''}">🌙 ${fmtH(rest)}</span>` : ''}
+        </span>
+      </div>
+      ${dayShifts.map(s => shiftRow(s)).join('')}`;
+  }).join('');
+
+  list.innerHTML = activeRow + dayHtml;
+}
+
+function shiftRow(s) {
+  const emoji = s.type === 'work' ? '⚙️' : '🌙';
+  const label = s.type === 'work' ? 'Turno de trabajo' : 'Período de descanso';
+  return `<div class="h-item" id="row-${s.id}" onclick="openSheet('${s.id}')">
+    <div style="font-size:20px;flex-shrink:0;">${emoji}</div>
+    <div class="h-info">
+      <div class="h-type">${label}</div>
+      <div class="h-time">${fmtDTFull(new Date(s.start))} → ${fmtTime(new Date(s.end))}</div>
+    </div>
+    <div class="h-dur">${fmtH(s.end-s.start)}</div>
+  </div>`;
+}
+
+function renderAll() {
+  renderButtons();
+  renderClock();
+  renderAlerts();
+  renderHistorial();
+}
+
+// ── Sheet modal ───────────────────────
+function openNewSheet() {
+  editingId = null; sheetOriginal = null;
+  sheetSetType('work');
+  const now = Date.now();
+  setSheetFields(now - 3600000, 'sheetStart');
+  setSheetFields(now, 'sheetEnd');
+  document.getElementById('sheetErr').textContent = '';
+  document.getElementById('sheetSaveBtn').disabled = false;
+  document.getElementById('sheetDeleteBtn').style.display = 'none';
+  document.getElementById('sheetTitle').textContent = 'Nuevo registro';
+  openSheetUI();
+}
+
+function openSheet(id) {
+  const s = loadShifts().find(x => x.id === id);
+  if (!s) return;
+  editingId = id;
+  sheetType = s.type;
+  sheetOriginal = { type: s.type, start: s.start, end: s.end };
+  sheetSetType(s.type);
+  setSheetFields(s.start, 'sheetStart');
+  setSheetFields(s.end,   'sheetEnd');
+  document.getElementById('sheetErr').textContent = '';
+  document.getElementById('sheetSaveBtn').disabled = true;
+  document.getElementById('sheetDeleteBtn').style.display = 'block';
+  document.getElementById('sheetTitle').textContent = 'Editar registro';
+  openSheetUI();
+}
+
+function openSheetUI() {
+  document.getElementById('sheetOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('sheet').classList.add('open'), 10);
+}
+
+function closeSheet() {
+  document.getElementById('sheet').classList.remove('open');
+  document.getElementById('sheetOverlay').classList.remove('open');
+  editingId = null;
+}
+
+function sheetSetType(t) {
+  sheetType = t;
+  document.getElementById('sheetWork').classList.toggle('active', t === 'work');
+  document.getElementById('sheetRest').classList.toggle('active', t === 'rest');
+  checkSheetChanged();
+}
+
+function getSheetMs(prefix) {
+  const d = document.getElementById(prefix + 'Date').value;
+  const t = document.getElementById(prefix + 'Time').value;
+  return d && t ? new Date(`${d}T${t}`).getTime() : NaN;
+}
+function setSheetFields(ms, prefix) {
+  const d = new Date(ms);
+  const p = n => String(n).padStart(2,'0');
+  document.getElementById(prefix + 'Date').value = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+  document.getElementById(prefix + 'Time').value = `${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function checkSheetChanged() {
+  if (!sheetOriginal) return;
+  const sm = getSheetMs('sheetStart'), em = getSheetMs('sheetEnd');
+  const changed = sheetType !== sheetOriginal.type || sm !== sheetOriginal.start || em !== sheetOriginal.end;
+  document.getElementById('sheetSaveBtn').disabled = !changed;
+}
+
+function saveSheet() {
+  const err = document.getElementById('sheetErr');
+  err.textContent = '';
+  const sm = getSheetMs('sheetStart'), em = getSheetMs('sheetEnd');
+  if (isNaN(sm) || isNaN(em))    { err.textContent = 'Completa inicio y fin.'; return; }
+  if (em <= sm)                  { err.textContent = 'El fin debe ser posterior al inicio.'; return; }
+  if (em > Date.now() + 60000)   { err.textContent = 'El fin no puede ser en el futuro.'; return; }
+  if (em - sm > 24 * 3600000)    { err.textContent = 'Un turno no puede superar 24h.'; return; }
+  const shifts = loadShifts();
+  if (shifts.filter(x => x.id !== editingId).some(x => sm < x.end && em > x.start)) {
+    err.textContent = 'Se solapa con otro registro.'; return;
+  }
+  if (editingId) {
+    const idx = shifts.findIndex(x => x.id === editingId);
+    shifts[idx] = { ...shifts[idx], type: sheetType, start: sm, end: em };
+    saveShifts(shifts);
+    toast('Registro actualizado');
+  } else {
+    shifts.push({ id: uid(), type: sheetType, start: sm, end: em, manual: true });
+    saveShifts(shifts);
+    toast('Registro añadido');
+  }
+  closeSheet();
+  renderAll();
+}
+
+function deleteFromSheet() {
+  if (!editingId) return;
+  saveShifts(loadShifts().filter(s => s.id !== editingId));
+  closeSheet();
+  renderAll();
+  toast('Registro eliminado');
+}
+
+// ── Toast ────────────────────────────
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ── Utils ────────────────────────────
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+const _DIAS  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const _MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function fmtDayHeader(d) {
+  const dia = _DIAS[d.getDay()];
+  return dia.charAt(0).toUpperCase() + dia.slice(1) + ', ' + d.getDate() + ' de ' + _MESES[d.getMonth()];
+}
+function fmtH(ms) {
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60), m = totalMin % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+function fmtDurHMS(ms) {
+  const s = Math.floor(ms/1000);
+  return `${pad(Math.floor(s/3600))}:${pad(Math.floor((s%3600)/60))}:${pad(s%60)}`;
+}
+function fmtTime(d) { return d.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' }); }
+function fmtDTFull(d) {
+  return d.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' }) + ' ' + fmtTime(d);
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+function dayKey(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+// ── Init ─────────────────────────────
+const nowDate = new Date();
+document.getElementById('headerDate').textContent =
+  nowDate.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
+
+renderAll();
+if (active) startTick();
+setInterval(() => { renderAlerts(); renderHistorial(); }, 60000);
+</script>
+</body>
+</html>
