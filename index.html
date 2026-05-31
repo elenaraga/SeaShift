@@ -72,6 +72,33 @@
     }
     .live-since { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 5px; }
 
+    /* ── Stars ── */
+    #liveCard { overflow: hidden; }
+    .star {
+      position: absolute; pointer-events: none;
+      animation: twinkle var(--dur) ease-in-out infinite var(--delay);
+    }
+    @keyframes twinkle {
+      0%,100% { opacity: var(--min-op); transform: scale(0.7) rotate(0deg); }
+      50%      { opacity: var(--max-op); transform: scale(1.5) rotate(15deg); }
+    }
+    .shooting-star {
+      position: absolute; pointer-events: none;
+      animation: shoot 1.4s ease-out forwards;
+    }
+    @keyframes shoot {
+      0%   { opacity: 0; offset-distance: 0%; }
+      10%  { opacity: 0.9; }
+      80%  { opacity: 0.6; }
+      100% { opacity: 0; offset-distance: 100%; }
+    }
+    @keyframes drawShoot {
+      0%   { stroke-dashoffset: 120; opacity: 0; }
+      8%   { opacity: 1; }
+      60%  { stroke-dashoffset: 0; opacity: 0.8; }
+      100% { stroke-dashoffset: 0; opacity: 0; }
+    }
+
     /* ── Buttons ── */
     .btn-col { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
     .btn {
@@ -241,21 +268,23 @@
 
   <!-- Live clock -->
   <div id="liveCard" style="display:none; position:relative; border-radius:14px; padding:18px 20px; margin-bottom:32px;">
-    <div id="liveEmoji" style="position:absolute;top:14px;right:16px;font-size:22px;"></div>
-    <div class="live-row">
-      <div class="live-dot" id="liveDot"></div>
-      <div class="live-label" id="liveLabel"></div>
+    <div style="position:relative; z-index:2;">
+      <div id="liveEmoji" style="position:absolute;top:0px;right:0px;font-size:22px;"></div>
+      <div class="live-row">
+        <div class="live-dot" id="liveDot"></div>
+        <div class="live-label" id="liveLabel"></div>
+      </div>
+      <div class="live-time" id="liveTime"></div>
+      <div class="live-since" id="liveSince"></div>
+      <button class="btn" id="btnStopLabel" onclick="stopShift()"
+        style="margin-top:16px;background:rgba(255,255,255,0.20);color:#fff;border:none;">Finalizar turno</button>
     </div>
-    <div class="live-time" id="liveTime"></div>
-    <div class="live-since" id="liveSince"></div>
-    <button class="btn" id="btnStopLabel" onclick="stopShift()"
-      style="margin-top:16px;background:rgba(255,255,255,0.20);color:#fff;border:none;">Finalizar turno</button>
   </div>
 
   <!-- Start buttons -->
-  <div class="btn-col" id="btnStart" style="margin-top:32px; margin-bottom:32px;">
-    <button class="btn btn-work" onclick="startShift('work')">▶ Turno de Trabajo</button>
-    <button class="btn btn-rest" onclick="startShift('rest')">🌙 Período de Descanso</button>
+  <div id="btnStart" style="margin-top:32px; margin-bottom:32px; display:flex; flex-direction:row; gap:8px;">
+    <button class="btn btn-work" onclick="startShift('work')" style="flex:1;">▶ Iniciar Trabajo</button>
+    <button class="btn btn-rest" onclick="startShift('rest')" style="flex:1;">🌙 Iniciar Descanso</button>
   </div>
 
   <!-- Alerts -->
@@ -349,7 +378,7 @@ function stopShift() {
 
 function commitActive() {
   const dur = Date.now() - active.start;
-  if (dur < 10000) return; // ignore < 10 seconds
+  if (dur < 60000) return; // ignore < 1 minute
   const shifts = loadShifts();
   shifts.push({ id: uid(), type: active.type, start: active.start, end: Date.now(), manual: false });
   saveShifts(shifts);
@@ -443,6 +472,85 @@ function checkDayViolations(dayStart, allShifts) {
 }
 
 // ── Render ───────────────────────────
+// ── Stars ────────────────────────────
+let starsInitialized = false;
+function initStars() {
+  if (starsInitialized) return;
+  starsInitialized = true;
+  const card = document.getElementById('liveCard');
+  const count = 14;
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() * 4 + 3;
+    const minOp = (Math.random() * 0.08 + 0.06).toFixed(2);
+    const maxOp = (Math.random() * 0.22 + 0.18).toFixed(2);
+    s.innerHTML = `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+      <path d="M10 0 C10 0 11 8 20 10 C20 10 11 12 10 20 C10 20 9 12 0 10 C0 10 9 8 10 0Z" fill="white"/>
+    </svg>`;
+    s.style.cssText = `
+      position:absolute; pointer-events:none; z-index:0;
+      left:${Math.random()*92}%; top:${Math.random()*92}%;
+      --dur:${(Math.random()*5+4).toFixed(1)}s;
+      --delay:-${(Math.random()*8).toFixed(1)}s;
+      --min-op:${minOp}; --max-op:${maxOp};
+    `;
+    card.appendChild(s);
+  }
+  // Shooting star every 5–9s, only when rest mode
+  function launchShootingStar() {
+    if (!active || active.type !== 'rest') { setTimeout(launchShootingStar, 2000); return; }
+    const card = document.getElementById('liveCard');
+    const w = card.offsetWidth, h = card.offsetHeight;
+
+    // Cubic Bézier: gentle arc across upper portion of card
+    const x0 = Math.random() * w * 0.25 + 10;
+    const y0 = Math.random() * h * 0.28 + 8;
+    const x1 = x0 + 110 + Math.random() * 60;
+    const y1 = y0 + 45 + Math.random() * 25;
+    const cp1x = x0 + (x1 - x0) * 0.25;
+    const cp1y = y0 - 12;
+    const cp2x = x0 + (x1 - x0) * 0.6;
+    const cp2y = y0 + (y1 - y0) * 0.45;
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('width', w); svg.setAttribute('height', h);
+    svg.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;overflow:visible;z-index:0;';
+
+    const defs = document.createElementNS(svgNS, 'defs');
+    const grad = document.createElementNS(svgNS, 'linearGradient');
+    const gid = 'sg' + Date.now();
+    grad.setAttribute('id', gid);
+    grad.setAttribute('gradientUnits', 'userSpaceOnUse');
+    grad.setAttribute('x1', x0); grad.setAttribute('y1', y0);
+    grad.setAttribute('x2', x1); grad.setAttribute('y2', y1);
+    [['0%','0'],['50%','0.5'],['100%','0']].forEach(([off, op]) => {
+      const stop = document.createElementNS(svgNS, 'stop');
+      stop.setAttribute('offset', off); stop.setAttribute('stop-color', 'white'); stop.setAttribute('stop-opacity', op);
+      grad.appendChild(stop);
+    });
+    defs.appendChild(grad); svg.appendChild(defs);
+
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', `M${x0},${y0} C${cp1x},${cp1y} ${cp2x},${cp2y} ${x1},${y1}`);
+    path.setAttribute('stroke', `url(#${gid})`);
+    path.setAttribute('stroke-width', '1.2');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke-linecap', 'round');
+    const len = 170;
+    path.style.strokeDasharray = len;
+    path.style.strokeDashoffset = len;
+    path.style.animation = 'drawShoot 1.6s cubic-bezier(0.25,0.1,0.25,1) forwards';
+    svg.appendChild(path);
+
+    card.appendChild(svg);
+    setTimeout(() => svg.remove(), 1700);
+    setTimeout(launchShootingStar, Math.random() * 4000 + 5000);
+  }
+  setTimeout(launchShootingStar, Math.random() * 3000 + 2000);
+}
+
 function renderClock() {
   const card  = document.getElementById('liveCard');
   const dot   = document.getElementById('liveDot');
@@ -456,6 +564,11 @@ function renderClock() {
   const isWork = active.type === 'work';
   card.style.background = isWork ? 'rgba(0,114,220,0.90)' : 'rgba(0,114,220,0.20)';
   card.style.border = 'none';
+
+  // Stars only in rest mode
+  if (!isWork) initStars();
+  const stars = card.querySelectorAll('.star');
+  stars.forEach(s => s.style.display = isWork ? 'none' : 'block');
 
   document.getElementById('liveEmoji').textContent = isWork ? '⚙️' : '🌙';
 
